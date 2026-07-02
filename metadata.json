@@ -1,0 +1,6 @@
+{
+  "name": "UK Home Care Contribution Calculator",
+  "description": "Calculate estimated financial contributions towards council-funded care in the home based on regional capital limits, Minimum Income Guarantees, and personal finances.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
