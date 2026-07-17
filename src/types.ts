@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type FinancialYear = '2024-25' | '2025-26' | '2026-27';
+
 export type Region = 'england' | 'scotland' | 'wales' | 'ni';
 
 export type AgeCategory = 'under-25' | '25-to-pension' | 'pension-age';
@@ -56,6 +58,7 @@ export interface CarePackageDetails {
 }
 
 export interface FinancialAssessmentInput {
+  financialYear: FinancialYear;
   region: Region;
   ageCategory: AgeCategory;
   relationshipStatus: RelationshipStatus;

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { FinancialAssessmentInput, Region, AgeCategory, DisabilityPremiumType } from '../types';
-import { MapPin, User, ShieldAlert, Award, HelpCircle } from 'lucide-react';
+import { MapPin, User, ShieldAlert, Award, HelpCircle, Calendar } from 'lucide-react';
 
 interface DemographicsFormProps {
   input: FinancialAssessmentInput;
@@ -13,6 +13,10 @@ interface DemographicsFormProps {
 }
 
 export const DemographicsForm: React.FC<DemographicsFormProps> = ({ input, onChange }) => {
+  const handleYearChange = (financialYear: '2024-25' | '2025-26' | '2026-27') => {
+    onChange({ financialYear });
+  };
+
   const handleRegionChange = (region: Region) => {
     onChange({ region });
   };
@@ -27,6 +31,42 @@ export const DemographicsForm: React.FC<DemographicsFormProps> = ({ input, onCha
 
   return (
     <div className="space-y-8" id="demographics-form-section">
+      {/* Financial Year Selection */}
+      <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <Calendar className="h-4 w-4 text-indigo-600" />
+            Financial Assessment Year
+          </label>
+          <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold tracking-widest font-mono">Select</span>
+        </div>
+        <p className="text-xs text-slate-500 leading-normal">
+          Assessments use statutory limits (MIG and premiums) which are adjusted annually by the government. Compare how much you keep across different tax years.
+        </p>
+        <div className="grid grid-cols-3 gap-2 pt-1.5">
+          {([
+            { id: '2024-25', label: '2024/25', desc: 'Baseline rules' },
+            { id: '2025-26', label: '2025/26', desc: 'Uprated rates' },
+            { id: '2026-27', label: '2026/27', desc: 'Current (April 2026)' },
+          ] as const).map((y) => (
+            <button
+              key={y.id}
+              type="button"
+              id={`year-btn-${y.id}`}
+              onClick={() => handleYearChange(y.id)}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-center transition-all cursor-pointer ${
+                input.financialYear === y.id
+                  ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold ring-2 ring-indigo-600/20'
+                  : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+              }`}
+            >
+              <span className="text-xs font-bold">{y.label}</span>
+              <span className="text-[9px] opacity-75 mt-0.5">{y.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Region Selection */}
       <div className="space-y-4">
         <label className="flex items-center gap-2 text-lg font-semibold text-slate-800">
@@ -136,7 +176,7 @@ export const DemographicsForm: React.FC<DemographicsFormProps> = ({ input, onCha
             {
               id: 'severe',
               label: 'Severe Disability Premium',
-              desc: 'You receive standard/enhanced PIP/DLA/AA, live alone, and no one gets Carer Allowance.',
+              desc: "You receive standard/enhanced PIP/DLA/AA, live alone, and no one gets Carer's Allowance (or if a couple, both get PIP/DLA/AA and again, no carer's allowance paid).",
             },
           ].map((dp) => (
             <button

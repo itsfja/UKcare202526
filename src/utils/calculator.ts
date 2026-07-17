@@ -15,86 +15,220 @@ import {
  * Calculates the Minimum Income Guarantee (MIG) for England (2024/2025 guidelines)
  * Councils are required to leave people with at least this amount of income per week.
  */
+/**
+ * Calculates the Minimum Income Guarantee (MIG) for England, Scotland, and Wales
+ * based on the financial year and relationship status.
+ * Councils are required to leave people with at least this amount of income per week.
+ */
 export function getMIGDetails(
   region: Region,
   ageCategory: AgeCategory,
   disabilityPremium: DisabilityPremiumType,
-  hasCarerPremium: boolean
+  hasCarerPremium: boolean,
+  relationshipStatus: 'single' | 'couple' = 'single',
+  financialYear: '2024-25' | '2025-26' | '2026-27' = '2026-27'
 ) {
   let baseMig = 0;
   let disabilityPremiumAmount = 0;
   let carerPremiumAmount = 0;
 
+  const isCouple = relationshipStatus === 'couple';
+
   if (region === 'england' || region === 'ni') {
-    // England standard MIG rules (2024/25 limits, Northern Ireland matches or is free)
-    if (ageCategory === 'under-25') {
-      baseMig = 87.15;
-    } else if (ageCategory === '25-to-pension') {
-      baseMig = 109.95;
+    // 1. England & Northern Ireland standard rates
+    if (financialYear === '2024-25') {
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 68.30 : 87.15;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 86.20 : 109.95;
+      } else {
+        baseMig = isCouple ? 174.60 : 228.70; // Pensioner rate
+      }
+
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 29.60 : 41.50;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 14.15 : 19.70;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 80.40; // Severe is £80.40 per eligible person
+      }
+
+      if (hasCarerPremium) {
+        carerPremiumAmount = 45.60;
+      }
+    } else if (financialYear === '2025-26') {
+      // 1.7% CPI rise from 2024-25
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 69.45 : 88.65;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 87.65 : 111.80;
+      } else {
+        baseMig = isCouple ? 177.55 : 232.60;
+      }
+
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 30.10 : 42.20;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 14.40 : 20.05;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 81.75;
+      }
+
+      if (hasCarerPremium) {
+        carerPremiumAmount = 46.35;
+      }
     } else {
-      // Pension age
-      baseMig = 228.70;
-    }
+      // 2026-27 (3.8% CPI rise on 2025-26, incorporating user's quoted SDP of £86.05)
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 72.10 : 92.00;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 91.00 : 116.05;
+      } else {
+        baseMig = isCouple ? 184.30 : 241.45;
+      }
 
-    // Add disability premiums to MIG if selected
-    if (disabilityPremium === 'standard') {
-      disabilityPremiumAmount = 41.50;
-    } else if (disabilityPremium === 'enhanced') {
-      disabilityPremiumAmount = 19.70; // Added on top of standard or base
-    } else if (disabilityPremium === 'severe') {
-      disabilityPremiumAmount = 80.40;
-    }
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 31.25 : 43.80;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 14.95 : 20.80;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 86.05; // User's precise 2026/27 SDP rate!
+      }
 
-    if (hasCarerPremium) {
-      carerPremiumAmount = 45.60;
+      if (hasCarerPremium) {
+        carerPremiumAmount = 48.10;
+      }
     }
   } else if (region === 'wales') {
-    // Wales has higher basic allowances (MIG)
-    if (ageCategory === 'under-25') {
-      baseMig = 102.50;
-    } else if (ageCategory === '25-to-pension') {
-      baseMig = 125.00;
+    // 2. Wales (Higher statutory baselines)
+    if (financialYear === '2024-25') {
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 80.50 : 102.50;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 98.00 : 125.00;
+      } else {
+        baseMig = isCouple ? 190.50 : 249.50;
+      }
+
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 32.00 : 45.00;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 15.50 : 22.00;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 85.00;
+      }
+
+      if (hasCarerPremium) {
+        carerPremiumAmount = 48.00;
+      }
+    } else if (financialYear === '2025-26') {
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 81.85 : 104.25;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 99.65 : 127.10;
+      } else {
+        baseMig = isCouple ? 193.75 : 253.75;
+      }
+
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 32.55 : 45.75;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 15.75 : 22.40;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 86.45;
+      }
+
+      if (hasCarerPremium) {
+        carerPremiumAmount = 48.80;
+      }
     } else {
-      baseMig = 249.50;
-    }
+      // 2026-27
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 84.95 : 108.20;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 103.45 : 131.95;
+      } else {
+        baseMig = isCouple ? 201.10 : 263.40;
+      }
 
-    if (disabilityPremium === 'standard') {
-      disabilityPremiumAmount = 45.00;
-    } else if (disabilityPremium === 'enhanced') {
-      disabilityPremiumAmount = 22.00;
-    } else if (disabilityPremium === 'severe') {
-      disabilityPremiumAmount = 85.00;
-    }
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 33.80 : 47.50;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 16.35 : 23.25;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 89.75;
+      }
 
-    if (hasCarerPremium) {
-      carerPremiumAmount = 48.00;
+      if (hasCarerPremium) {
+        carerPremiumAmount = 50.65;
+      }
     }
   } else {
-    // Scotland standard non-residential MIG limits
-    if (ageCategory === 'under-25') {
-      baseMig = 95.00;
-    } else if (ageCategory === '25-to-pension') {
-      baseMig = 118.00;
+    // 3. Scotland non-residential charging limits
+    if (financialYear === '2024-25') {
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 74.50 : 95.00;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 92.50 : 118.00;
+      } else {
+        baseMig = isCouple ? 181.50 : 238.00;
+      }
+
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 30.50 : 43.00;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 14.70 : 20.50;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 82.00;
+      }
+
+      if (hasCarerPremium) {
+        carerPremiumAmount = 46.50;
+      }
+    } else if (financialYear === '2025-26') {
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 75.75 : 96.60;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 94.05 : 120.00;
+      } else {
+        baseMig = isCouple ? 184.60 : 242.05;
+      }
+
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 31.00 : 43.75;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 14.95 : 20.85;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 83.40;
+      }
+
+      if (hasCarerPremium) {
+        carerPremiumAmount = 47.30;
+      }
     } else {
-      baseMig = 238.00;
-    }
+      // 2026-27
+      if (ageCategory === 'under-25') {
+        baseMig = isCouple ? 78.65 : 100.25;
+      } else if (ageCategory === '25-to-pension') {
+        baseMig = isCouple ? 97.60 : 124.55;
+      } else {
+        baseMig = isCouple ? 191.60 : 251.25;
+      }
 
-    if (disabilityPremium === 'standard') {
-      disabilityPremiumAmount = 43.00;
-    } else if (disabilityPremium === 'enhanced') {
-      disabilityPremiumAmount = 20.50;
-    } else if (disabilityPremium === 'severe') {
-      disabilityPremiumAmount = 82.00;
-    }
+      if (disabilityPremium === 'standard') {
+        disabilityPremiumAmount = isCouple ? 32.20 : 45.40;
+      } else if (disabilityPremium === 'enhanced') {
+        disabilityPremiumAmount = isCouple ? 15.50 : 21.65;
+      } else if (disabilityPremium === 'severe') {
+        disabilityPremiumAmount = 86.55;
+      }
 
-    if (hasCarerPremium) {
-      carerPremiumAmount = 46.50;
+      if (hasCarerPremium) {
+        carerPremiumAmount = 49.10;
+      }
     }
   }
 
-  // Under England rules, enhanced disability premium is often additive,
-  // but to simplify and ensure a realistic and conservative estimate, we represent them as distinct tiers:
-  // Standard Disability Premium, Enhanced Disability Premium, and Severe Disability Premium.
   return {
     baseMig,
     disabilityPremiumAmount,
@@ -171,7 +305,7 @@ export function calculateAssessment(input: FinancialAssessmentInput): Calculatio
   const totalAssessableIncomeSources = totalGrossIncome - totalDisregardedIncome;
 
   // 6. MIG Details
-  const migDetails = getMIGDetails(region, ageCategory, disabilityPremium, hasCarerPremium);
+  const migDetails = getMIGDetails(region, ageCategory, disabilityPremium, hasCarerPremium, relationshipStatus, input.financialYear || '2026-27');
 
   // 7. Housing Costs
   const grossHousingCosts = expenses.rent + expenses.mortgage + expenses.councilTax;
@@ -266,6 +400,7 @@ export function calculateAssessment(input: FinancialAssessmentInput): Calculatio
  */
 export function getDefaultInput(): FinancialAssessmentInput {
   return {
+    financialYear: '2026-27',
     region: 'england',
     ageCategory: 'pension-age',
     relationshipStatus: 'single',

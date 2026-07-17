@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FinancialAssessmentInput, CalculationBreakdown } from '../types';
-import { Printer, Download, ArrowLeft, Heart, CheckCircle, ShieldAlert, Sparkles } from 'lucide-react';
+import { Printer, Download, ArrowLeft, Heart, CheckCircle, ShieldAlert, Sparkles, Banknote, Sliders } from 'lucide-react';
 
 interface DetailedReportProps {
   input: FinancialAssessmentInput;
@@ -14,6 +14,9 @@ interface DetailedReportProps {
 }
 
 export const DetailedReport: React.FC<DetailedReportProps> = ({ input, breakdown, onBack }) => {
+  const [housekeeping, setHousekeeping] = useState<number>(206.98);
+  const [useAstronomical, setUseAstronomical] = useState<boolean>(true);
+
   const handlePrint = () => {
     window.print();
   };
@@ -316,6 +319,174 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
           <div className="flex justify-between text-slate-900 font-bold">
             <span>Net weekly excess income (Max contribution limit):</span>
             <span>£{breakdown.netWeeklyIncome.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Section 6: Personal Budget, Housekeeping & Net Surplus */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 flex justify-between items-center">
+            <span>6. Personal Budget & Cash Flow Analysis</span>
+            <span className="text-[10px] text-blue-900 font-mono font-bold uppercase tracking-wide normal-case bg-blue-50 px-2 py-0.5 rounded print:hidden">
+              On-Screen Budget Tool
+            </span>
+          </h3>
+
+          <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-4 text-xs">
+            <p className="text-[11px] text-slate-500 leading-normal">
+              This section reconciles your real-world cash flows. Unlike statutory limits, it calculates your remaining cash surplus after paying the Council Care Bill, housing costs, disability-related expenses (DRE), and a specified housekeeping allowance.
+            </p>
+
+            {/* Formula Selector & Interactive Input (Hidden on Print) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:hidden">
+              {/* Formula */}
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200/60 flex items-center justify-between">
+                <span className="font-semibold text-slate-600 flex items-center gap-1">
+                  <Sliders className="h-3.5 w-3.5 text-blue-500" />
+                  Monthly Formula:
+                </span>
+                <div className="flex bg-slate-100 p-0.5 rounded-md text-[9px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setUseAstronomical(true)}
+                    className={`px-2 py-1 rounded transition-all cursor-pointer ${
+                      useAstronomical
+                        ? 'bg-blue-900 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Astronomical (4.348)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUseAstronomical(false)}
+                    className={`px-2 py-1 rounded transition-all cursor-pointer ${
+                      !useAstronomical
+                        ? 'bg-blue-900 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Standard (4.333)
+                  </button>
+                </div>
+              </div>
+
+              {/* Input */}
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200/60 flex items-center justify-between">
+                <span className="font-semibold text-slate-600">Weekly Housekeeping:</span>
+                <div className="relative rounded-md shadow-xs w-32">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+                    <span className="text-slate-400 font-mono">£</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={housekeeping === 0 ? '' : housekeeping}
+                    onChange={(e) => setHousekeeping(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="block w-full rounded-md border border-slate-200 py-1 pl-5 pr-7 text-right text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <span className="text-[9px] text-slate-400 font-mono">/wk</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Static Display of selected values for Print Only */}
+            <div className="hidden print:grid grid-cols-2 gap-4 pb-1 border-b border-slate-100 text-[11px] font-mono text-slate-500">
+              <div>Monthly Conversion Factor: <span className="font-bold text-slate-800">{useAstronomical ? '4.34833 weeks/mo' : '4.33333 weeks/mo'}</span></div>
+              <div className="text-right">Budgeted Weekly Housekeeping: <span className="font-bold text-slate-800">£{housekeeping.toFixed(2)}</span></div>
+            </div>
+
+            {/* Calculations Grid */}
+            {(() => {
+              const multiplier = useAstronomical ? 4.348333333 : (52 / 12);
+              
+              // Cash values
+              const weeklyIn = breakdown.totalGrossIncome;
+              const monthlyIn = weeklyIn * multiplier;
+
+              const weeklyCare = breakdown.userWeeklyContribution;
+              const monthlyCare = weeklyCare * multiplier;
+
+              const weeklyHousing = breakdown.netHousingCosts;
+              const monthlyHousing = weeklyHousing * multiplier;
+
+              const weeklyDre = breakdown.totalDre;
+              const monthlyDre = weeklyDre * multiplier;
+
+              const weeklyHousekeeping = housekeeping;
+              const monthlyHousekeeping = housekeeping * multiplier;
+
+              // Remaining Surplus
+              const weeklyDisposable = weeklyIn - weeklyCare - weeklyHousing - weeklyDre;
+              const monthlyDisposable = weeklyDisposable * multiplier;
+
+              const finalWeeklySurplus = weeklyDisposable - weeklyHousekeeping;
+              const finalMonthlySurplus = finalWeeklySurplus * multiplier;
+
+              return (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-12 gap-2 font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100 text-[9px]">
+                    <span className="col-span-6">Budget Item</span>
+                    <span className="col-span-3 text-right">Weekly Cash Flow</span>
+                    <span className="col-span-3 text-right">Monthly Cash Flow</span>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2 items-center text-slate-600 text-xs">
+                    <span className="col-span-6">1. Total Actual Inflow (Benefits & Pensions):</span>
+                    <span className="col-span-3 text-right font-mono">£{weeklyIn.toFixed(2)}</span>
+                    <span className="col-span-3 text-right font-mono text-slate-800 font-bold">£{monthlyIn.toFixed(2)}</span>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2 items-center text-red-600/80 text-xs">
+                    <span className="col-span-6">2. Less Estimated Council Care Bill:</span>
+                    <span className="col-span-3 text-right font-mono">–£{weeklyCare.toFixed(2)}</span>
+                    <span className="col-span-3 text-right font-mono">–£{monthlyCare.toFixed(2)}</span>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2 items-center text-red-600/80 text-xs">
+                    <span className="col-span-6">3. Less Net Rent, Mortgage & Council Tax:</span>
+                    <span className="col-span-3 text-right font-mono">–£{weeklyHousing.toFixed(2)}</span>
+                    <span className="col-span-3 text-right font-mono">–£{monthlyHousing.toFixed(2)}</span>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2 items-center text-red-600/80 text-xs">
+                    <span className="col-span-6">4. Less Actual Disability-Related Spend (DRE):</span>
+                    <span className="col-span-3 text-right font-mono">–£{weeklyDre.toFixed(2)}</span>
+                    <span className="col-span-3 text-right font-mono">–£{monthlyDre.toFixed(2)}</span>
+                  </div>
+
+                  <div className="h-px bg-slate-200" />
+
+                  <div className="grid grid-cols-12 gap-2 items-center text-slate-800 font-extrabold bg-blue-50/50 p-2 rounded text-xs">
+                    <span className="col-span-6">5. Net Cash Remaining (Disposable Income):</span>
+                    <span className="col-span-3 text-right font-mono">£{weeklyDisposable.toFixed(2)}</span>
+                    <span className="col-span-3 text-right font-mono text-blue-900 font-black">£{monthlyDisposable.toFixed(2)}</span>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2 items-center text-red-600/80 text-xs">
+                    <span className="col-span-6">6. Less Budgeted Housekeeping Allowance:</span>
+                    <span className="col-span-3 text-right font-mono">–£{weeklyHousekeeping.toFixed(2)}</span>
+                    <span className="col-span-3 text-right font-mono">–£{monthlyHousekeeping.toFixed(2)}</span>
+                  </div>
+
+                  <div className="h-px bg-slate-200" />
+
+                  <div className={`p-3 rounded-xl border grid grid-cols-12 gap-2 items-center text-xs ${
+                    finalWeeklySurplus >= 0
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-950 font-bold'
+                      : 'bg-rose-50 border-rose-200 text-rose-950 font-bold'
+                  }`}>
+                    <span className="col-span-6">
+                      {finalWeeklySurplus >= 0 ? 'Anticipated Net Cash Surplus (Pocket Money):' : 'Anticipated Budget Shortfall:'}
+                    </span>
+                    <span className="col-span-3 text-right font-mono">£{finalWeeklySurplus.toFixed(2)} /wk</span>
+                    <span className={`col-span-3 text-right font-mono text-sm font-extrabold ${finalWeeklySurplus >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
+                      £{finalMonthlySurplus.toFixed(2)} /mo
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
