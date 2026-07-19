@@ -11,6 +11,7 @@ import { CareCostForm } from './components/CareCostForm';
 import { CapitalForm } from './components/CapitalForm';
 import { IncomeForm } from './components/IncomeForm';
 import { ExpensesForm } from './components/ExpensesForm';
+import { StHelensFormDetails } from './components/StHelensFormDetails';
 import { CalculationSummary } from './components/CalculationSummary';
 import { RegionRulesInfo } from './components/RegionRulesInfo';
 import { DetailedReport } from './components/DetailedReport';
@@ -134,6 +135,14 @@ export default function App() {
     }
   };
 
+  // Safely bound currentStep when St Helens mode is turned on or off
+  useEffect(() => {
+    const maxStep = (input.isStHelensMode ? 6 : 5) - 1;
+    if (currentStep > maxStep) {
+      setCurrentStep(maxStep);
+    }
+  }, [input.isStHelensMode, currentStep]);
+
   const breakdown = calculateAssessment(input);
 
   const steps = [
@@ -142,6 +151,9 @@ export default function App() {
     { label: 'Capital & Savings', component: <CapitalForm input={input} onChange={handleInputChange} /> },
     { label: 'Weekly Income', component: <IncomeForm input={input} onChange={handleInputChange} /> },
     { label: 'Expenses & DRE', component: <ExpensesForm input={input} onChange={handleInputChange} /> },
+    ...(input.isStHelensMode ? [
+      { label: 'St Helens Council Unofficial Form Details', component: <StHelensFormDetails input={input} onChange={handleInputChange} /> }
+    ] : []),
   ];
 
   const handleNextStep = () => {
@@ -165,14 +177,20 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col" id="app-root-container">
       
       {/* 1. Header & Navigation Brand */}
-      <header className="sticky top-0 bg-blue-900 text-white z-30 shadow-md print:hidden">
+      <header className={`sticky top-0 z-30 shadow-md print:hidden transition-all duration-300 ${input.isStHelensMode ? 'bg-rose-950 text-white border-b border-rose-900' : 'bg-blue-900 text-white'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex justify-between items-center">
           {/* Logo Brand */}
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center font-bold text-lg text-white">C</div>
+            <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-lg transition-all ${input.isStHelensMode ? 'bg-rose-600 text-white' : 'bg-white/20 text-white'}`}>
+              {input.isStHelensMode ? '🏛️' : 'C'}
+            </div>
             <div>
-              <h1 className="text-sm sm:text-base font-semibold tracking-tight uppercase">Council Care Contribution Calculator</h1>
-              <p className="text-[10px] text-blue-200 uppercase tracking-widest font-mono">Financial Year 2026/27</p>
+              <h1 className="text-sm sm:text-base font-semibold tracking-tight uppercase">
+                {input.isStHelensMode ? 'St Helens Care Document Generator' : 'Council Care Contribution Calculator'}
+              </h1>
+              <p className={`text-[10px] uppercase tracking-widest font-mono ${input.isStHelensMode ? 'text-rose-300' : 'text-blue-200'}`}>
+                {input.isStHelensMode ? 'Unofficial Draft Prep Mode' : 'Financial Year 2026/27'}
+              </p>
             </div>
           </div>
 

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FinancialAssessmentInput, CalculationBreakdown } from '../types';
-import { Printer, Download, ArrowLeft, Heart, CheckCircle, ShieldAlert, Sparkles, Banknote, Sliders } from 'lucide-react';
+import { Printer, Download, ArrowLeft, Heart, CheckCircle, ShieldAlert, Sparkles, Banknote, Sliders, Copy, Check, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface DetailedReportProps {
   input: FinancialAssessmentInput;
@@ -16,13 +16,239 @@ interface DetailedReportProps {
 export const DetailedReport: React.FC<DetailedReportProps> = ({ input, breakdown, onBack }) => {
   const [housekeeping, setHousekeeping] = useState<number>(206.98);
   const [useAstronomical, setUseAstronomical] = useState<boolean>(true);
+  const [isIframe, setIsIframe] = useState<boolean>(false);
+  const [showIframePrintHelp, setShowIframePrintHelp] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsIframe(window.self !== window.top);
+    }
+  }, []);
 
   const handlePrint = () => {
-    window.print();
+    if (typeof window !== 'undefined' && window.self !== window.top) {
+      setShowIframePrintHelp(true);
+    }
+    try {
+      window.print();
+    } catch (err) {
+      console.warn("Printing failed or blocked by iframe security:", err);
+    }
   };
 
-  const handleDownloadText = () => {
-    const textContent = `
+  const handleDownloadText = (shouldCopy?: boolean) => {
+    const textContent = input.isStHelensMode ? `
+================================================================================
+          ST HELENS BOROUGH COUNCIL - INTEGRATED HEALTH & SOCIAL CARE
+                 UNOFFICIAL FINANCIAL ASSESSMENT FORM (DRAFT)
+================================================================================
+This is a draft preparation statement for a formal Care Act means-tested visit.
+Prepared: ${input.assessmentDate || new Date().toLocaleDateString()}
+LAS Reference Number: ${input.customerRef || 'N/A'}
+Visiting Officer: ${input.assessorName || 'N/A'}
+
+================================================================================
+1. YOUR PERSONAL DETAILS
+================================================================================
+Assessed Person : ${input.stHelens?.title || ''} ${input.stHelens?.firstName || ''} ${input.stHelens?.lastName || input.customerName || ''}
+Address         : ${input.stHelens?.address || 'N/A'}
+Date of Birth   : ${input.stHelens?.dob || 'N/A'}
+N.I. Number     : ${input.nino || 'N/A'}
+Home Telephone  : ${input.stHelens?.phone || 'N/A'}
+Mobile Number   : ${input.stHelens?.mobile || 'N/A'}
+Marital Status  : ${input.stHelens?.maritalStatus?.toUpperCase() || 'N/A'}
+Applied Service : ${input.stHelens?.services?.toUpperCase() || 'N/A'} (Community / Respite / Permanent)
+
+================================================================================
+2. PEOPLE LIVING WITH YOU
+================================================================================
+${(input.stHelens?.peopleLivingWith && input.stHelens.peopleLivingWith.filter(p => p.name).length > 0)
+  ? input.stHelens.peopleLivingWith.filter(p => p.name).map((p, idx) => `Occupant #${idx+1}:
+  - Name: ${p.name || 'N/A'}
+  - DoB: ${p.dob || 'N/A'}
+  - Relationship: ${p.relationship || 'N/A'}
+  - N.I. Number (if partner): ${p.nino || 'N/A'}`).join('\n\n')
+  : 'None (Living Alone)'
+}
+
+================================================================================
+3. INCOME & BENEFITS
+================================================================================
+CUSTOMER'S WEEKLY BENEFITS:
+- State Retirement Pension: £${input.income.statePension.toFixed(2)}
+- Pension Credit: £${input.income.pensionCredit.toFixed(2)}
+- Attendance Allowance: £${input.income.attendanceAllowance.toFixed(2)}
+- Personal Independence Payment (Daily Living): £${input.income.pipCare.toFixed(2)}
+- Personal Independence Payment (Mobility): £${input.income.pipMobility.toFixed(2)} (Disregarded)
+- Disability Living Allowance (Care): £${input.income.dlaCare.toFixed(2)}
+- Disability Living Allowance (Mobility): £${input.income.dlaMobility.toFixed(2)} (Disregarded)
+- Other Benefits: £${input.income.otherBenefits.toFixed(2)}
+
+PARTNER'S WEEKLY BENEFITS & OTHER:
+- ESA / Income Support / Universal Credit: (See booklet draft details)
+- Is Carer's Allowance paid to anyone looking after you? : ${input.stHelens?.carersAllowancePaid ? 'YES (' + input.stHelens?.carersAllowancePaidTo + ')' : 'NO'}
+- Housing Benefit active?: ${input.stHelens?.housingBenefitPaid ? 'YES (£' + input.stHelens?.housingBenefitAmount + ')' : 'NO'}
+- Council Tax Support active?: ${input.stHelens?.councilTaxBenefitPaid ? 'YES (£' + input.stHelens?.councilTaxBenefitAmount + ')' : 'NO'}
+
+PRIVATE & OCCUPATIONAL PENSIONS:
+${(input.stHelens?.pensions && input.stHelens.pensions.length > 0)
+  ? input.stHelens.pensions.map((p, idx) => `Pension #${idx+1}:
+  - Provider: ${p.provider || 'N/A'}
+  - Net Amount: £${p.netAmount.toFixed(2)} (${p.frequency})
+  - Payee: ${p.payee || 'N/A'}
+  - Proof Provided: ${p.evidence ? 'Yes' : 'No'}`).join('\n\n')
+  : `None declared. Main value of £${input.income.occupationalPension.toFixed(2)}/wk entered in calculator.`
+}
+- Passing 50% to spouse/partner? (Residential Care only): ${input.stHelens?.passHalfOccupationalPension ? 'YES' : 'NO'}
+
+EARNINGS FROM EMPLOYMENT (FULLY DISREGARDED UNDER CARE ACT 2014):
+${(input.stHelens?.earnings && input.stHelens.earnings.length > 0)
+  ? input.stHelens.earnings.map((e, idx) => `Earnings #${idx+1}:
+  - Employer: ${e.employer || 'N/A'}
+  - Net Pay: £${e.netAmount.toFixed(2)} (${e.frequency})
+  - Payee: ${e.payee || 'N/A'}
+  - Proof Provided: ${e.evidence ? 'Yes' : 'No'}`).join('\n\n')
+  : `None declared. Main value of £${input.income.employmentEarnings.toFixed(2)}/wk entered.`
+}
+
+================================================================================
+4. CAPITAL AND SAVINGS
+================================================================================
+Main Assessable Capital in Calculator: £${breakdown.totalCapital.toLocaleString()}
+Tariff Income Applied from Savings    : £${breakdown.tariffIncome.toFixed(2)} /week (Standard England £14,250 to £23,250 bands)
+
+DETAILED BANK ACCOUNTS & INVESTMENTS:
+${(input.stHelens?.capitalAccounts && input.stHelens.capitalAccounts.length > 0)
+  ? input.stHelens.capitalAccounts.map((a, idx) => `Account #${idx+1}:
+  - Bank/Society: ${a.bank || 'N/A'}
+  - Account No: ${a.accountNo || 'N/A'}
+  - Balance/Value: £${a.amount.toLocaleString()}
+  - Holder: ${a.holder || 'N/A'}
+  - Evidence attached: ${a.evidence ? 'Yes' : 'No'}`).join('\n\n')
+  : 'Summed under Cash & Bank Accounts in main calculator.'
+}
+
+- Have you gifted or transferred away any capital/savings?: ${input.stHelens?.giftedCapital ? 'YES' : 'NO'}
+${input.stHelens?.giftedCapital ? `  Details of gift: ${input.stHelens?.giftedDetails || 'N/A'}` : ''}
+
+================================================================================
+5. WILL AND EXECUTOR DETAILS
+================================================================================
+Has Will been made? : ${input.stHelens?.willMade?.toUpperCase() || 'UNKNOWN'}
+Where is WILL held? : ${input.stHelens?.willLocation || 'N/A'}
+
+EXECUTORS DETAILS:
+${(input.stHelens?.executors && input.stHelens.executors.length > 0)
+  ? input.stHelens.executors.map((e, idx) => `Executor #${idx+1}:
+  - Name: ${e.name || 'N/A'}
+  - Address: ${e.address || 'N/A'}`).join('\n\n')
+  : 'None entered.'
+}
+
+================================================================================
+6. WHERE YOU LIVE & ACCOMMODATION
+================================================================================
+Property Type: ${input.stHelens?.propertyType?.toUpperCase() || 'N/A'} ${input.stHelens?.propertyTypeOther ? '(' + input.stHelens.propertyTypeOther + ')' : ''}
+Council Tax: ${input.stHelens?.paysCouncilTax ? 'Liable for Annual Council Tax of £' + input.stHelens.annualCouncilTax.toLocaleString() : 'Not Liable'}
+
+6.2 OWNER-OCCUPIER:
+- Sole Owner: ${input.stHelens?.soleOwner?.toUpperCase() || 'N/A'}
+- Joint Owner: ${input.stHelens?.jointOwner?.toUpperCase() || 'N/A'}
+${input.stHelens?.jointOwner === 'yes' ? `  Details of other owners & share: ${input.stHelens?.otherOwnersShare || 'N/A'}` : ''}
+- Mortgage secured on home: ${input.stHelens?.mortgageSecured?.toUpperCase() || 'N/A'}
+- Title deeds held where: ${input.stHelens?.deedsLocation || 'N/A'}
+
+6.3 RENTED ACCOMMODATION:
+- Partner or relative owns it: ${input.stHelens?.partnerOrRelativeOwns?.toUpperCase() || 'N/A'}
+${input.stHelens?.partnerOrRelativeOwns === 'yes' ? `  Relationship to you: ${input.stHelens?.relativeRelationship || 'N/A'}` : ''}
+- Renting from private landlord: ${input.stHelens?.rentedPrivateLandlord?.toUpperCase() || 'N/A'}
+- Renting from housing association: ${input.stHelens?.rentedHousingAssociation?.toUpperCase() || 'N/A'}
+- Rent Amount: £${input.stHelens?.rentAmount || 0} (${input.stHelens?.rentFrequency || 'weekly'})
+- Rent includes service charges: ${input.stHelens?.serviceChargesIncluded?.toUpperCase() || 'NO'}
+
+6.4 OTHER LIVING ARRANGEMENTS:
+- Details: ${input.stHelens?.otherLivingArrangements || 'None'}
+
+================================================================================
+7. DETAILS OF FORMER HOMES
+================================================================================
+Ever owned a home (if not now)?: ${input.stHelens?.everOwnedHome?.toUpperCase() || 'NO'}
+${input.stHelens?.everOwnedHome === 'yes' ? `Address: ${input.stHelens?.formerHomeAddress || 'N/A'}
+Sold/Transferred date: ${input.stHelens?.formerHomeDateSold || 'N/A'}` : ''}
+
+================================================================================
+8. DETAILS OF OTHER PROPERTY OR LAND
+================================================================================
+Own other land or property?: ${input.stHelens?.ownOtherProperty?.toUpperCase() || 'NO'}
+${input.stHelens?.ownOtherProperty === 'yes' ? `Address: ${input.stHelens?.otherPropertyAddress || 'N/A'}
+Is it occupied? : ${input.stHelens?.otherPropertyOccupied?.toUpperCase() || 'N/A'}
+Rental income received? : ${input.stHelens?.otherPropertyRentalIncome?.toUpperCase() || 'N/A'} (£${input.stHelens?.otherPropertyRentAmount || 0}/${input.stHelens?.otherPropertyRentFrequency || 'weekly'})
+Mortgage details: ${input.stHelens?.otherPropertyMortgage ? 'YES - Details: ' + input.stHelens?.otherPropertyMortgageDetails : 'NO'}` : ''}
+
+================================================================================
+9. DISABILITY RELATED EXPENDITURE (DRE)
+================================================================================
+These are extra weekly costs incurred because of your illness or disability.
+(Note: Receipts/invoices are required as proof of payment by St Helens Council).
+
+Itemized Weekly DRE Claims:
+- Careline / Community Alarm: £${(input.stHelens?.dreItems?.careline || input.expenses.dreCommunityAlarm).toFixed(2)} /week
+- Specialist Laundry: £${(input.stHelens?.dreItems?.washingLaundry || input.expenses.dreExtraLaundry).toFixed(2)} /week
+- Chiropody: £${(input.stHelens?.dreItems?.chiropody || 0).toFixed(2)} /week
+- Specialist Clothing/Footwear: £${(input.stHelens?.dreItems?.clothingFootwear || input.expenses.dreSpecialClothing).toFixed(2)} /week
+- Additional Bedding (Incontinence): £${(input.stHelens?.dreItems?.bedding || 0).toFixed(2)} /week
+- Extra metered water: £${(input.stHelens?.dreItems?.meteredWater || 0).toFixed(2)} /week
+- Extra heating (above average): £${(input.stHelens?.dreItems?.extraHeating || input.expenses.dreExtraHeating).toFixed(2)} /week
+- Cleaning / Domestic help: £${(input.stHelens?.dreItems?.cleaningDomestic || 0).toFixed(2)} /week
+- Basic garden maintenance: £${(input.stHelens?.dreItems?.gardenMaintenance || 0).toFixed(2)} /week
+- Hire/repair of equipment: £${(input.stHelens?.dreItems?.equipmentHireRepair || input.expenses.dreMobilityEquipment).toFixed(2)} /week
+- Privately arranged care: £${(input.stHelens?.dreItems?.privateCare || 0).toFixed(2)} /week
+- Additional Continence Products (non-NHS): £${(input.stHelens?.dreItems?.continence || 0).toFixed(2)} /week
+- Other: £${(input.stHelens?.dreItems?.other1 || 0).toFixed(2)} /week (${input.stHelens?.dreItems?.other1Desc || 'N/A'})
+- Other: £${(input.stHelens?.dreItems?.other2 || 0).toFixed(2)} /week (${input.stHelens?.dreItems?.other2Desc || 'N/A'})
+
+Total Calculated DRE in assessment: £${breakdown.totalDre.toFixed(2)} /week
+
+================================================================================
+10. FINANCIAL REPRESENTATIVE
+================================================================================
+Managing Affairs: ${input.stHelens?.hasRep ? 'Assisted by Financial Representative' : 'Applicant manages own affairs'}
+Representative Type: ${input.stHelens?.repType?.toUpperCase() || 'NONE'}
+
+CONTACT DETAILS:
+- Full Name: ${input.stHelens?.repName || 'N/A'}
+- Relationship: ${input.stHelens?.repRelationship || 'N/A'}
+- Address: ${input.stHelens?.repAddress || 'N/A'}
+- Telephone: ${input.stHelens?.repPhone || 'N/A'}
+
+================================================================================
+11. DRAFT STATEMENT SUMMARY
+================================================================================
+Total Gross Weekly Income   : £${breakdown.totalGrossIncome.toFixed(2)}
+Total Allowable Deductions  : £${breakdown.totalAllowableDeductions.toFixed(2)}
+(Includes MIG of £${breakdown.totalMig.toFixed(2)}, housing costs £${breakdown.netHousingCosts.toFixed(2)}, DRE £${breakdown.totalDre.toFixed(2)})
+
+Maximum Weekly Contribution : £${breakdown.maximumWeeklyCharge.toFixed(2)}
+Weekly Cost of Care Package : £${breakdown.actualWeeklyCareCost.toFixed(2)}
+
+--------------------------------------------------------------------------------
+FINAL ASSESSMENT ESTIMATE:
+- CUSTOMER WEEKLY CONTRIBUTION : £${breakdown.userWeeklyContribution.toFixed(2)}
+- ST HELENS COUNCIL CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
+================================================================================
+
+DECLARATION SIGNATURES:
+--------------------------------------------------------------------------------
+I declare that to the best of my knowledge and belief, the details provided in this financial assessment draft represent a true and full statement of my capital, savings, assets, benefits, pensions, housing outgoings, and disability-related expenditures (DRE) for the financial year ${input.financialYear}.
+
+Signed (Customer/Representative): ________________________   Date: ___________
+
+Signed (Visiting Officer):       ________________________   Date: ___________
+
+================================================================================
+*This is a preparatory draft document generated for St Helens Council visiting officers.*
+` : `
 ==================================================
    UK COUNCIL HOME CARE CONTRIBUTION STATEMENT
 ==================================================
@@ -32,6 +258,7 @@ Age Category: ${input.ageCategory}
 Relationship Status: ${input.relationshipStatus}
 Disability Premium Status: ${input.disabilityPremium}
 Carer Premium: ${input.hasCarerPremium ? 'Yes' : 'No'}
+
 
 --------------------------------------------------
 1. CARE PACKAGE COSTS
@@ -90,13 +317,31 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
 *Disclaimer: This is an estimated advice statement. Actual funding depends on a formal means test and care needs assessment performed by your local council.*
 `;
 
+    if (shouldCopy === true) {
+      navigator.clipboard.writeText(textContent)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch((err) => {
+          console.error("Copying to clipboard failed:", err);
+        });
+      return;
+    }
+
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Home_Care_Contribution_Report_${new Date().toISOString().split('T')[0]}.txt`;
+    link.download = input.isStHelensMode
+      ? `St_Helens_Care_Contribution_Report_${new Date().toISOString().split('T')[0]}.txt`
+      : `Home_Care_Contribution_Report_${new Date().toISOString().split('T')[0]}.txt`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopyToClipboard = () => {
+    handleDownloadText(true);
   };
 
   return (
@@ -112,7 +357,16 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
           <ArrowLeft className="h-4 w-4" />
           Back to Calculator Edit
         </button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
+          <button
+            type="button"
+            id="report-copy-btn"
+            onClick={handleCopyToClipboard}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copied!' : 'Copy to Clipboard'}
+          </button>
           <button
             type="button"
             id="report-download-btn"
@@ -134,25 +388,74 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
         </div>
       </div>
 
+      {/* Embedded Iframe Info Hint */}
+      {(isIframe || showIframePrintHelp) && (
+        <div className="bg-amber-50/90 border border-amber-200 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs text-amber-900 print:hidden shadow-xs">
+          <div className="flex gap-2.5 items-start">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-extrabold text-amber-950 uppercase tracking-wide text-[10px]">Embedded Frame Print Tip</p>
+              <p className="text-amber-800 mt-0.5 leading-relaxed font-sans">
+                Your browser blocks printing inside secure embedded preview frames. For best results on PC, click <strong>"Open in a new tab"</strong> at the top right of your screen to print normally, or use the <strong>"Copy to Clipboard"</strong> button to paste the report instantly into any text editor.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Print Container */}
       <div className="bg-white rounded-3xl border border-slate-200 p-8 space-y-8 shadow-sm print:border-0 print:shadow-none print:p-0">
         
         {/* Report Brand Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-6 gap-4">
+        <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-6 gap-4 ${input.isStHelensMode ? 'border-rose-100' : 'border-slate-100'}`}>
           <div>
-            <div className="flex items-center gap-2 text-indigo-600 font-extrabold text-sm uppercase tracking-wider">
-              <Heart className="h-4 w-4" />
-              <span>Independent Assessment</span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 mt-1">Financial Assessment Report</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Council Care at Home Contribution Assessment Estimate</p>
+            {input.isStHelensMode ? (
+              <>
+                <div className="flex items-center gap-1.5 text-rose-700 font-extrabold text-[10px] uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded border border-rose-100 w-fit">
+                  <span>🏛️ St Helens Council Draft Statement</span>
+                </div>
+                <h1 className="text-xl font-black text-rose-950 mt-1.5 tracking-tight uppercase">St Helens Borough Council</h1>
+                <p className="text-xs text-slate-500 font-medium">Adult Social Care Services • Financial Assessment Draft Report</p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-indigo-600 font-extrabold text-sm uppercase tracking-wider">
+                  <Heart className="h-4 w-4" />
+                  <span>Independent Assessment</span>
+                </div>
+                <h1 className="text-2xl font-black text-slate-900 mt-1">Financial Assessment Report</h1>
+                <p className="text-xs text-slate-400 mt-0.5">Council Care at Home Contribution Assessment Estimate</p>
+              </>
+            )}
           </div>
           <div className="text-left sm:text-right font-mono text-xs text-slate-500 space-y-1">
-            <div>Date: {new Date().toLocaleDateString()}</div>
+            <div>Date: {input.isStHelensMode ? input.assessmentDate : new Date().toLocaleDateString()}</div>
             <div>Region: <span className="font-bold text-slate-800">{input.region.toUpperCase()}</span></div>
             <div>Status: <span className="font-bold text-slate-800">{input.relationshipStatus.toUpperCase()}</span></div>
           </div>
         </div>
+
+        {/* St Helens Unofficial Metadata Box */}
+        {input.isStHelensMode && (
+          <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono text-slate-700">
+            <div>
+              <span className="text-[10px] text-rose-800 font-sans font-extrabold uppercase block mb-0.5">Assessed Customer</span>
+              <span className="font-bold text-rose-950">{input.customerName || 'Margaret Davies'}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-rose-800 font-sans font-extrabold uppercase block mb-0.5">LAS ID / Reference</span>
+              <span className="font-bold text-rose-950">{input.customerRef || 'STH-4491-X'}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-rose-800 font-sans font-extrabold uppercase block mb-0.5">National Insurance</span>
+              <span className="font-bold text-rose-950">{input.nino || 'QQ 12 34 56 C'}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-rose-800 font-sans font-extrabold uppercase block mb-0.5">Visiting Officer</span>
+              <span className="font-bold text-rose-950">{input.assessorName || 'Officer Gribble'}</span>
+            </div>
+          </div>
+        )}
 
         {/* Highlight Result Callout */}
         <div className="bg-slate-900 text-white rounded-2xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-800">
@@ -491,13 +794,44 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
         </div>
 
         {/* Disclaimer / Notice footer */}
-        <div className="border-t border-slate-100 pt-6 space-y-2">
+        <div className="border-t border-slate-100 pt-6 space-y-4">
+          {input.isStHelensMode && (
+            <div className="bg-rose-50/40 border border-rose-100 p-5 rounded-2xl space-y-4 text-xs text-slate-700">
+              <h4 className="font-extrabold uppercase text-rose-950 text-[10px] tracking-widest">
+                ✍️ Unofficial Care Assessment Declaration & Agreement (St Helens Council Draft)
+              </h4>
+              <p className="leading-relaxed">
+                I declare that to the best of my knowledge and belief, the details provided in this financial assessment draft represent a true and full statement of my capital, savings, assets, weekly benefit and pension income, housing outgoings, and disability-related expenditures (DRE) for the financial year {input.financialYear}. I understand this draft serves as preparation for the visiting officer.
+              </p>
+              <div className="grid grid-cols-2 gap-8 pt-4">
+                <div className="space-y-4">
+                  <div className="h-10 border-b border-dashed border-slate-300" />
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 font-sans tracking-wide">
+                    <span>Signature of Person Assessed / Representative</span>
+                    <span>Date</span>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="h-10 border-b border-dashed border-slate-300" />
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 font-sans tracking-wide">
+                    <span>Visiting Officer / Assessor Signature</span>
+                    <span>Date</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <ShieldAlert className="h-4 w-4 text-amber-500" />
             Advisory Disclaimer
           </h4>
           <p className="text-[10px] text-slate-400 leading-relaxed">
-            This statement is an independent estimation tool based on government guidelines (Care Act charging regulations). It is designed to assist you in preparing for a council financial assessment. It does not guarantee funding or constitute legal binding advice. Councils may interpret specific incomes and Disability Related Expenditure (DRE) depending on local guidelines.
+            {input.isStHelensMode ? (
+              <span>St Helens Council will verify all evidence, receipts, and bank statements during their formal means-test visit. This care document generator provides a high-fidelity preparatory draft to help you compile your documents and anticipate charges. It does not bind St Helens Council or replace the official Care Act 2014 assessment process.</span>
+            ) : (
+              <span>This statement is an independent estimation tool based on government guidelines (Care Act charging regulations). It is designed to assist you in preparing for a council financial assessment. It does not guarantee funding or constitute legal binding advice. Councils may interpret specific incomes and Disability Related Expenditure (DRE) depending on local guidelines.</span>
+            )}
           </p>
         </div>
       </div>
