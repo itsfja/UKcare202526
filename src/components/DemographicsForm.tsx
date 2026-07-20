@@ -110,6 +110,23 @@ export const DemographicsForm: React.FC<DemographicsFormProps> = ({ input, onCha
                 placeholder="e.g. Visiting Officer Gribble"
               />
             </div>
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700">Date of Birth</label>
+              <input
+                type="date"
+                value={input.stHelens?.dob || ''}
+                onChange={(e) => {
+                  const dob = e.target.value;
+                  onChange({
+                    stHelens: {
+                      ...(input.stHelens || {}),
+                      dob,
+                    } as any
+                  });
+                }}
+                className="block w-full rounded-lg border border-slate-200 p-2 text-xs focus:border-rose-500 focus:outline-none bg-white font-medium font-mono"
+              />
+            </div>
           </div>
         )}
       </div>

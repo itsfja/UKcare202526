@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FinancialAssessmentInput, CalculationBreakdown } from '../types';
-import { Printer, Download, ArrowLeft, Heart, CheckCircle, ShieldAlert, Sparkles, Banknote, Sliders, Copy, Check, ExternalLink, AlertCircle } from 'lucide-react';
+import { Printer, Download, ArrowLeft, Heart, CheckCircle, ShieldAlert, Sparkles, Banknote, Sliders, Copy, Check, ExternalLink, AlertCircle, Share2, Smartphone, X } from 'lucide-react';
 
 interface DetailedReportProps {
   input: FinancialAssessmentInput;
@@ -19,6 +19,7 @@ export const DetailedReport: React.FC<DetailedReportProps> = ({ input, breakdown
   const [isIframe, setIsIframe] = useState<boolean>(false);
   const [showIframePrintHelp, setShowIframePrintHelp] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [showMobileAssist, setShowMobileAssist] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -27,17 +28,48 @@ export const DetailedReport: React.FC<DetailedReportProps> = ({ input, breakdown
   }, []);
 
   const handlePrint = () => {
-    if (typeof window !== 'undefined' && window.self !== window.top) {
-      setShowIframePrintHelp(true);
-    }
-    try {
-      window.print();
-    } catch (err) {
-      console.warn("Printing failed or blocked by iframe security:", err);
+    const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // Mobile WebView or device detected where direct print is often blocked/unsupported
+      setShowMobileAssist(true);
+    } else {
+      if (typeof window !== 'undefined' && window.self !== window.top) {
+        setShowIframePrintHelp(true);
+      }
+      try {
+        window.print();
+      } catch (err) {
+        console.warn("Printing failed or blocked by iframe security:", err);
+        setShowMobileAssist(true); // Fallback to assist on PC too if printing fails
+      }
     }
   };
 
-  const handleDownloadText = (shouldCopy?: boolean) => {
+  const fallbackCopyToClipboard = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        alert("Please select and copy the report manually from the page.");
+      }
+    } catch (err) {
+      console.error("Fallback copy failed", err);
+    }
+  };
+
+  const handleDownloadText = async (shouldCopy?: boolean) => {
     const textContent = input.isStHelensMode ? `
 ================================================================================
           ST HELENS BOROUGH COUNCIL - INTEGRATED HEALTH & SOCIAL CARE
@@ -318,26 +350,67 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
 `;
 
     if (shouldCopy === true) {
-      navigator.clipboard.writeText(textContent)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        })
-        .catch((err) => {
-          console.error("Copying to clipboard failed:", err);
-        });
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(textContent)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          })
+          .catch((err) => {
+            console.error("Copying to clipboard failed:", err);
+            fallbackCopyToClipboard(textContent);
+          });
+      } else {
+        fallbackCopyToClipboard(textContent);
+      }
       return;
     }
 
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = input.isStHelensMode
+    const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const fileName = input.isStHelensMode
       ? `St_Helens_Care_Contribution_Report_${new Date().toISOString().split('T')[0]}.txt`
       : `Home_Care_Contribution_Report_${new Date().toISOString().split('T')[0]}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+
+    // Mobile: Prefer Native Sharing (allows directly sharing the text file to Whatsapp, Drive, Gmail, or native PDF printer)
+    if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const file = new File([textContent], fileName, { type: 'text/plain;charset=utf-8' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: input.isStHelensMode ? 'St Helens Care Contribution Report' : 'Home Care Contribution Report',
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn("Native file sharing failed, falling back to text share:", err);
+      }
+
+      try {
+        await navigator.share({
+          title: input.isStHelensMode ? 'St Helens Care Contribution Report' : 'Home Care Contribution Report',
+          text: textContent,
+        });
+        return;
+      } catch (err) {
+        console.warn("Native text sharing failed, falling back to blob download:", err);
+      }
+    }
+
+    try {
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Standard blob download failed, displaying mobile assistance panel instead:", err);
+      setShowMobileAssist(true);
+    }
   };
 
   const handleCopyToClipboard = () => {
@@ -835,6 +908,122 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
           </p>
         </div>
       </div>
+
+      {/* Mobile Print / Share Assist Modal */}
+      {showMobileAssist && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in print:hidden" id="mobile-assist-modal-overlay">
+          <div 
+            className="bg-white rounded-3xl border border-slate-100 shadow-xl max-w-md w-full overflow-hidden flex flex-col animate-scale-up"
+            id="mobile-assist-modal-container"
+          >
+            {/* Header */}
+            <div className={`p-5 text-white flex justify-between items-center ${input.isStHelensMode ? 'bg-rose-950' : 'bg-indigo-950'}`} id="mobile-assist-header">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-indigo-300 animate-pulse" />
+                <div>
+                  <h3 className="font-extrabold text-xs uppercase tracking-wider">Mobile Assist Companion</h3>
+                  <p className="text-[10px] text-indigo-200">Pixel 10 Pro XL & Android Support</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowMobileAssist(false)}
+                className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                id="mobile-assist-close-top"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5 flex-1" id="mobile-assist-content">
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 text-xs text-blue-900 leading-relaxed">
+                <AlertCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-blue-950">Why did this happen?</p>
+                  <p className="mt-1">
+                    Android WebViews and signed wrapper apps often block raw desktop print commands and direct file-system downloads (Blob links).
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500 font-sans leading-relaxed">
+                We have prepared native, 100% reliable system routes for your Pixel device. Choose one of the options below:
+              </p>
+
+              {/* Action list */}
+              <div className="space-y-3" id="mobile-assist-actions">
+                {/* 1. Share File */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileAssist(false);
+                    handleDownloadText(false);
+                  }}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                  id="mobile-assist-share-btn"
+                >
+                  <div className="flex gap-3 items-center">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                      <Share2 className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 text-xs">Share Statement File</p>
+                      <p className="text-[10px] text-slate-400">Send TXT to Drive, Gmail, or print as PDF</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-slate-400" />
+                </button>
+
+                {/* 2. Copy Full Text */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDownloadText(true);
+                  }}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                  id="mobile-assist-copy-btn"
+                >
+                  <div className="flex gap-3 items-center">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                      {copied ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5 text-emerald-600" />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 text-xs">Copy Full Text Report</p>
+                      <p className="text-[10px] text-slate-400">Paste directly into Word, Docs, or email</p>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-bold ${copied ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Android printing guide */}
+              <div className="pt-2">
+                <p className="font-bold text-[10px] text-slate-400 uppercase tracking-wider mb-2">💡 Quick Android PDF & Print Hack</p>
+                <ol className="text-[11px] text-slate-500 list-decimal pl-4 space-y-1 font-sans">
+                  <li>Tap the <strong>Share Statement File</strong> button above.</li>
+                  <li>In the sharing list, select your preferred email application or save to your Google Drive folder.</li>
+                  <li>Open the file from your computer or phone to print it normally. Alternatively, choose the system "Print" button if available in the share menu!</li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end" id="mobile-assist-footer">
+              <button
+                type="button"
+                onClick={() => setShowMobileAssist(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                id="mobile-assist-dismiss-btn"
+              >
+                Close Assistant
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

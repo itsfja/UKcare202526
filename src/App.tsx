@@ -405,10 +405,15 @@ export default function App() {
               id="about-dialog-modal"
             >
               <div className="flex justify-between items-center border-b border-slate-100 pb-3" id="about-modal-header">
-                <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider flex items-center gap-1.5">
-                  <Info className="h-4 w-4 text-indigo-600" />
-                  About the Project
-                </h3>
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider flex items-center gap-1.5">
+                    <Info className="h-4 w-4 text-indigo-600" />
+                    About the Project
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5" id="about-app-version">
+                    Version 1.0.7 (Build 7)
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowAboutModal(false)}
@@ -461,7 +466,7 @@ export default function App() {
                   </div>
                   <div className="space-y-1">
                     <h5 className="font-bold text-xs text-amber-950 flex items-center gap-1.5" id="coffee-header-title">
-                      Buy Me a Coffee (For the Loonies)
+                      Buy Me a Coffee
                     </h5>
                     <p className="text-[11px] text-amber-900/80 leading-normal">
                       Support the Ideas Man! Your generous contributions keep armstrongfj fueled, biscuits flowing, and ensure this tool remains free, robust, and accessible to everyone.
