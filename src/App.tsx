@@ -411,7 +411,7 @@ export default function App() {
                     About the Project
                   </h3>
                   <p className="text-[10px] text-slate-400 font-mono mt-0.5" id="about-app-version">
-                    Version 1.0.7 (Build 7)
+                    Version 1.0.10 (Build 10)
                   </p>
                 </div>
                 <button
