@@ -443,7 +443,14 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
           <button
             type="button"
             id="report-download-btn"
-            onClick={handleDownloadText}
+            onClick={() => {
+              const isMobileDevice = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              if (isMobileDevice || isIframe) {
+                setShowMobileAssist(true);
+              } else {
+                handleDownloadText(false);
+              }
+            }}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <Download className="h-4 w-4" />
@@ -921,8 +928,8 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
               <div className="flex items-center gap-2">
                 <Smartphone className="h-5 w-5 text-indigo-300 animate-pulse" />
                 <div>
-                  <h3 className="font-extrabold text-xs uppercase tracking-wider">Mobile Assist Companion</h3>
-                  <p className="text-[10px] text-indigo-200">Pixel 10 Pro XL & Android Support</p>
+                  <h3 className="font-extrabold text-xs uppercase tracking-wider">Mobile & Frame Companion</h3>
+                  <p className="text-[10px] text-indigo-200">Pixel & Android Support Activated</p>
                 </div>
               </div>
               <button 
@@ -936,89 +943,92 @@ COUNCIL WEEKLY CONTRIBUTION: £${breakdown.councilWeeklyContribution.toFixed(2)}
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-5 flex-1" id="mobile-assist-content">
-              <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 text-xs text-blue-900 leading-relaxed">
-                <AlertCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto" id="mobile-assist-content">
+              <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3 text-xs text-amber-900 leading-relaxed">
+                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-blue-950">Why did this happen?</p>
+                  <p className="font-bold text-amber-950">Secure Sandbox Helper</p>
                   <p className="mt-1">
-                    Android WebViews and signed wrapper apps often block raw desktop print commands and direct file-system downloads (Blob links).
+                    Mobile browser previews block direct file downloads and raw print windows inside frames.
                   </p>
                 </div>
               </div>
 
               <p className="text-xs text-slate-500 font-sans leading-relaxed">
-                We have prepared native, 100% reliable system routes for your Pixel device. Choose one of the options below:
+                Please use our highly reliable native system routes:
               </p>
 
               {/* Action list */}
               <div className="space-y-3" id="mobile-assist-actions">
-                {/* 1. Share File */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMobileAssist(false);
-                    handleDownloadText(false);
-                  }}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-                  id="mobile-assist-share-btn"
-                >
-                  <div className="flex gap-3 items-center">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                      <Share2 className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-800 text-xs">Share Statement File</p>
-                      <p className="text-[10px] text-slate-400">Send TXT to Drive, Gmail, or print as PDF</p>
-                    </div>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-slate-400" />
-                </button>
-
-                {/* 2. Copy Full Text */}
+                {/* 1. Copy Full Text (The Superstar Action) */}
                 <button
                   type="button"
                   onClick={() => {
                     handleDownloadText(true);
                   }}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-                  id="mobile-assist-copy-btn"
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 transition-colors text-left group"
+                  id="mobile-assist-copy-superstar"
                 >
                   <div className="flex gap-3 items-center">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                      {copied ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5 text-emerald-600" />}
+                    <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                      {copied ? <Check className="h-5 w-5 text-emerald-700" /> : <Copy className="h-5 w-5 text-emerald-700" />}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800 text-xs">Copy Full Text Report</p>
-                      <p className="text-[10px] text-slate-400">Paste directly into Word, Docs, or email</p>
+                      <p className="font-extrabold text-emerald-950 text-xs">Copy Statement (Highly Recommended)</p>
+                      <p className="text-[10px] text-emerald-800 leading-tight">
+                        Unlocks Pixel's native system bar to directly Share, Email, or Print to PDF.
+                      </p>
                     </div>
                   </div>
-                  <span className={`text-[10px] font-bold ${copied ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${copied ? 'bg-emerald-200 text-emerald-800' : 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200'}`}>
                     {copied ? 'Copied!' : 'Copy'}
                   </span>
                 </button>
+
+                {/* 2. Open Standalone App (Only if isIframe is true) */}
+                {isIframe && (
+                  <a
+                    href={typeof window !== 'undefined' ? window.location.href : '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowMobileAssist(false)}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left block"
+                    id="mobile-assist-standalone-link"
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                        <ExternalLink className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 text-xs">Open in Standalone Tab</p>
+                        <p className="text-[10px] text-slate-400">Restores standard print & download menus.</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400">Open</span>
+                  </a>
+                )}
               </div>
 
               {/* Android printing guide */}
               <div className="pt-2">
-                <p className="font-bold text-[10px] text-slate-400 uppercase tracking-wider mb-2">💡 Quick Android PDF & Print Hack</p>
+                <p className="font-bold text-[10px] text-slate-400 uppercase tracking-wider mb-2">💡 Android / Pixel PDF Hack</p>
                 <ol className="text-[11px] text-slate-500 list-decimal pl-4 space-y-1 font-sans">
-                  <li>Tap the <strong>Share Statement File</strong> button above.</li>
-                  <li>In the sharing list, select your preferred email application or save to your Google Drive folder.</li>
-                  <li>Open the file from your computer or phone to print it normally. Alternatively, choose the system "Print" button if available in the share menu!</li>
+                  <li>Tap the <strong>Copy Statement</strong> green button above.</li>
+                  <li>In the native preview overlay at the bottom left of your Pixel, tap the <strong>Share</strong> or <strong>Gmail</strong> icon.</li>
+                  <li>Select your printer application or send to Google Drive to print/export as a PDF flawlessly!</li>
                 </ol>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end" id="mobile-assist-footer">
+            <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end animate-fade-in" id="mobile-assist-footer">
               <button
                 type="button"
                 onClick={() => setShowMobileAssist(false)}
                 className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                 id="mobile-assist-dismiss-btn"
               >
-                Close Assistant
+                Close Helper
               </button>
             </div>
           </div>
